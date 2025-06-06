@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Motos Custom Garage</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="background"></div>
+
+  <header>
+    <img src="logo.png" alt="Logo Toppan Custom" class="logo">
+    <h1>Motos Custom Garage</h1>
+    <nav>
+      <button id="toggleMotos" class="btn-toggle">Motos cadastradas</button>
+      <button id="btnNovaMoto">Nova Moto</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="search">
+      <input type="text" id="busca" placeholder="Buscar por modelo ou fabricante...">
+    </div>
+    <section id="motoList" class="cards hidden"></section>
+  </main>
+
+  <!-- Modal Formulário -->
+  <div id="modalForm" class="modal hidden">
+    <form id="formMoto">
+      <h2>Nova Moto</h2>
+      <label>Modelo:
+        <input type="text" id="modelo" required />
+      </label>
+      <label>Fabricante:
+        <input type="text" id="fabricante" required />
+      </label>
+      <label>Preço (R$):
+        <input type="number" id="preco" required />
+      </label>
+      <label>Imagem:
+        <input type="file" id="imagem" accept="image/*" required />
+      </label>
+      <img id="preview" style="max-width: 100%; max-height: 150px; margin-top: 10px; display: none;" />
+      <div class="actions">
+        <button type="submit">Salvar</button>
+        <button type="button" id="btnFechar">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+   const motoList = document.getElementById("motoList");
+const modal = document.getElementById("modalForm");
+const btnNovaMoto = document.getElementById("btnNovaMoto");
+const btnFechar = document.getElementById("btnFechar");
+const form = document.getElementById("formMoto");
+const inputImagem = document.getElementById("imagem");
+const preview = document.getElementById("preview");
+const busca = document.getElementById("busca");
+const toggleMotos = document.getElementById("toggleMotos");
+
+let imagemBase64 = "";
+let editIndex = null;
+
+btnNovaMoto.addEventListener("click", (e) => {
+  e.preventDefault();
+  form.reset();
+  preview.style.display = "none";
+  imagemBase64 = "";
+  editIndex = null;
+  modal.classList.remove("hidden");
+});
+
+btnFechar.addEventListener("click", () => {
+  modal.classList.add("hidden");
+});
+
+toggleMotos.addEventListener("click", () => {
+  if (motoList.classList.contains("hidden")) {
+    motoList.classList.remove("hidden");
+    motoList.classList.add("visible");
+  } else {
+    motoList.classList.add("hidden");
+    motoList.classList.remove("visible");
+  }
+});
+
+inputImagem.addEventListener("change", function () {
+  const file = inputImagem.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    imagemBase64 = e.target.result;
+    preview.src = imagemBase64;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+function carregarMotos() {
+  motoList.innerHTML = "";
+  const motos = JSON.parse(localStorage.getItem("motos")) || [];
+  const termo = busca.value.toLowerCase();
+  motos.forEach((moto, index) => {
+    if (
+      moto.modelo.toLowerCase().includes(termo) ||
+      moto.fabricante.toLowerCase().includes(termo)
+    ) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="${moto.imagem}" alt="Imagem da moto" />
+        <div class="card-body">
+          <h3>${moto.modelo}</h3>
+          <p><strong>Fabricante:</strong> ${moto.fabricante}</p>
+          <p class="price">R$ ${parseFloat(moto.preco).toFixed(2)}</p>
+          <div class="card-actions">
+            <button class="edit" data-index="${index}">Editar</button>
+            <button class="delete" data-index="${index}">Excluir</button>
+          </div>
+        </div>
+      `;
+      motoList.appendChild(card);
+    }
+  });
+}
+
+busca.addEventListener("input", carregarMotos);
+
+form.onsubmit = (e) => {
+  e.preventDefault();
+  const moto = {
+    modelo: document.getElementById("modelo").value,
+    fabricante: document.getElementById("fabricante").value,
+    preco: document.getElementById("preco").value,
+    imagem: imagemBase64
+  };
+
+  let motos = JSON.parse(localStorage.getItem("motos")) || [];
+  if (editIndex !== null) {
+    motos[editIndex] = moto;
+  } else {
+    motos.push(moto);
+  }
+
+  localStorage.setItem("motos", JSON.stringify(motos));
+  modal.classList.add("hidden");
+  carregarMotos();
+};
+
+motoList.addEventListener("click", (e) => {
+  const target = e.target;
+  const index = target.dataset.index;
+  let motos = JSON.parse(localStorage.getItem("motos")) || [];
+
+  if (target.classList.contains("delete")) {
+    motos.splice(index, 1);
+    localStorage.setItem("motos", JSON.stringify(motos));
+    carregarMotos();
+  } else if (target.classList.contains("edit")) {
+    const moto = motos[index];
+    document.getElementById("modelo").value = moto.modelo;
+    document.getElementById("fabricante").value = moto.fabricante;
+    document.getElementById("preco").value = moto.preco;
+    imagemBase64 = moto.imagem;
+    preview.src = imagemBase64;
+    preview.style.display = "block";
+    editIndex = index;
+    modal.classList.remove("hidden");
+  }
+});
+
+carregarMotos();
+
+function adicionarProduto() {
+    const nome = document.getElementById('nomeProduto').value;
+    const preco = document.getElementById('precoProduto').value;
+    const descricao = document.getElementById('descricaoProduto').value;
+    const categoria = document.getElementById('categoriaProduto').value;
+    const imagem = document.getElementById('imagemProduto').value;
+
+    if (!nome || !preco || !descricao || !categoria || !imagem) {
+      alert("Preencha todos os campos!");
+      return;
+    }
+
+    const novoProduto = { nome, preco, descricao, categoria, imagem };
+    const lista = JSON.parse(localStorage.getItem("produtos")) || [];
+    lista.push(novoProduto);
+    localStorage.setItem("produtos", JSON.stringify(lista));
+    location.reload(); 
+  }
+  
+  </script>
+</body>
+</html>
